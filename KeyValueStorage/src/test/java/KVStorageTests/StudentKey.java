@@ -4,7 +4,7 @@ public class StudentKey implements Comparable<StudentKey> {
     private final int groupId;
     private final String name;
 
-    public StudentKey(int groupId, String name) {
+    StudentKey(int groupId, String name) {
         if (name == null) {
             throw new IllegalArgumentException("Name cannot be null");
         }
@@ -12,11 +12,11 @@ public class StudentKey implements Comparable<StudentKey> {
         this.name = name;
     }
 
-    public int getGroupId() {
+    int getGroupId() {
         return groupId;
     }
 
-    public String getName() {
+    String getName() {
         return name;
     }
 

@@ -11,7 +11,6 @@ public class SimpleKeyValueStorage<Key, Value>  implements KeyValueStorage<Key, 
     private String valueType;
     private Serializer keySerializer;
     private Serializer valueSerializer;
-    private String pathDirectory;
     private String fullPath;
     private boolean isOpen;
 
@@ -19,8 +18,7 @@ public class SimpleKeyValueStorage<Key, Value>  implements KeyValueStorage<Key, 
                              Serializer externalValueSerializer) throws Exception {
         keyType = keyT;
         valueType = valueT;
-        pathDirectory = path;
-        File file = new File(pathDirectory);
+        File file = new File(path);
         if (!file.isDirectory()) {
             throw new RuntimeException("invalid directory path");
         }
@@ -28,7 +26,7 @@ public class SimpleKeyValueStorage<Key, Value>  implements KeyValueStorage<Key, 
             throw new RuntimeException("such directory does not exist");
         }
 
-        fullPath = pathDirectory + File.separator + "MyStorage";
+        fullPath = path + File.separator + "MyStorage";
         isOpen = true;
 
         keySerializer = externalKeySerializer;

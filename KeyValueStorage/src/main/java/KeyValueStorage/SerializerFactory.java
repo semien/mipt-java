@@ -1,7 +1,7 @@
 package KeyValueStorage;
 
-public class SerializerFactory {
-    public static Serializer takeSerializer(String str) throws Exception {
+class SerializerFactory {
+    static Serializer takeSerializer(String str) throws Exception {
         switch (str) {
             case "Integer":
                 return new IntegerSerializer();

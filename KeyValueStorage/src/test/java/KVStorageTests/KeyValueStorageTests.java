@@ -16,14 +16,9 @@ import static org.junit.Assert.*;
 
 
 public class KeyValueStorageTests {
-    public static final ThreadLocal<Calendar> CALENDAR = new ThreadLocal<Calendar>() {
-        @Override
-        protected Calendar initialValue() {
-            return Calendar.getInstance();
-        }
-    };
+    private static final ThreadLocal<Calendar> CALENDAR = ThreadLocal.withInitial(Calendar::getInstance);
 
-    public static void doInTempDirectory(Callback<String> callback) {
+    private static void doInTempDirectory(Callback<String> callback) {
         try {
             Path path = null;
             try {
@@ -46,17 +41,18 @@ public class KeyValueStorageTests {
         void callback(T t) throws Exception;
     }
 
-    public static Date date(int year, int month, int day) {
+    private static Date date(int year, int month, int day) {
         Calendar calendar = CALENDAR.get();
         calendar.set(year, month, day);
         return calendar.getTime();
     }
 
-    public static <T> void assertFullyMatch(Iterator<T> iterator, T... items) {
-        assertFullyMatch(iterator, new HashSet<T>(Arrays.<T>asList(items)));
+    @SafeVarargs
+    private static <T> void assertFullyMatch(Iterator<T> iterator, T... items) {
+        assertFullyMatch(iterator, new HashSet<>(Arrays.asList(items)));
     }
 
-    public static <T> void assertFullyMatch(Iterator<T> iterator, Set<T> set) {
+    private static <T> void assertFullyMatch(Iterator<T> iterator, Set<T> set) {
         int count = 0;
         while (iterator.hasNext()) {
             T t = iterator.next();
@@ -71,67 +67,39 @@ public class KeyValueStorageTests {
         }
     }
 
-    public static long measureTime() {
-        long startTime = System.currentTimeMillis();
-        long endTime = System.currentTimeMillis();
-        return endTime - startTime;
-    }
+    private static final StudentKey KEY_1 = new StudentKey(591, "Vasya Pukin");
+    private static final Student VALUE_1 = new Student(591, "Vasya Pukin", "Vasyuki", date(1996, 4, 14), true, 7.8);
 
+    private static final StudentKey KEY_2 = new StudentKey(591, "Ahmad Ben Hafiz");
+    private static final Student VALUE_2 = new Student(591, "Ahmad Ben Hafiz", "Cairo", date(1432, 9, 2), false, 3.3);
 
+    private static final StudentKey KEY_3 = new StudentKey(599, "John Smith");
+    private static final Student VALUE_3 = new Student(599, "John Smith", "Glasgow", date(1874, 3, 8), true, 9.1);
 
-    public static final StudentKey KEY_1 = new StudentKey(591, "Vasya Pukin");
-    public static final Student VALUE_1 = new Student(591, "Vasya Pukin", "Vasyuki", date(1996, 4, 14), true, 7.8);
-
-    public static final StudentKey KEY_2 = new StudentKey(591, "Ahmad Ben Hafiz");
-    public static final Student VALUE_2 = new Student(591, "Ahmad Ben Hafiz", "Cairo", date(1432, 9, 2), false, 3.3);
-
-    public static final StudentKey KEY_3 = new StudentKey(599, "John Smith");
-    public static final Student VALUE_3 = new Student(599, "John Smith", "Glasgow", date(1874, 3, 8), true, 9.1);
-
-    protected final <K extends Comparable<K>, V> KeyValueStorage<K, V> storageCallback(
+    private  <K extends Comparable<K>, V> KeyValueStorage<K, V> storageCallback(
             String path, Callback<KeyValueStorage<K, V>> callback, Function<String, KeyValueStorage<K, V>> builder)
             throws Exception {
         KeyValueStorage<K, V> storage = builder.apply(path);
-        try {
+        try (storage) {
             if (callback != null) {
                 callback.callback(storage);
             }
-        } finally {
-            storage.close();
         }
         return storage;
     }
 
-    protected final KeyValueStorage<String, String> doWithStrings(
-            String path, Callback<KeyValueStorage<String, String>> callback) throws Exception {
-        return storageCallback(path, callback, buildStringsStorage);
-    }
-
-    protected final KeyValueStorage<Integer, Double> doWithNumbers(
-            String path, Callback<KeyValueStorage<Integer, Double>> callback) throws Exception {
-        return storageCallback(path, callback, buildNumbersStorage);
-    }
-
-    protected final KeyValueStorage<StudentKey, Student> doWithPojo(
-            String path, Callback<KeyValueStorage<StudentKey, Student>> callback) throws Exception {
-        return storageCallback(path, callback, buildPojoStorage);
-
-    protected KeyValueStorage<String, String> buildStringsStorage(String path) {
+    private KeyValueStorage<String, String> buildStringsStorage(String path) {
         try {
-            return new SimpleKeyValueStorage<>(path, "String", "String");
-        } catch (IOException e) {
-            e.printStackTrace();
+            return new SimpleKeyValueStorage<String, String>(path, "String", "String");
         } catch (Exception e) {
             e.printStackTrace();
         }
         return null;
     }
 
-    protected KeyValueStorage<Integer, Double> buildNumbersStorage(String path) {
+    private KeyValueStorage<Integer, Double> buildNumbersStorage(String path) {
         try {
-            return new SimpleKeyValueStorage<>(path, "Integer", "Double");
-        } catch (IOException e) {
-            e.printStackTrace();
+            return new SimpleKeyValueStorage<Integer, Double>(path, "Integer", "Double");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -142,12 +110,25 @@ public class KeyValueStorageTests {
         try {
             return new SimpleKeyValueStorage<StudentKey,Student>(path, "StudentKey", "Student", new StudentKeySerializer(),
                     new StudentSerializer());
-        } catch (IOException e) {
-            e.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
         }
         return null;
+    }
+
+    private KeyValueStorage<String, String> doWithStrings(
+            String path, Callback<KeyValueStorage<String, String>> callback) throws Exception {
+        return storageCallback(path, callback, this::buildStringsStorage);
+    }
+
+    private KeyValueStorage<Integer, Double> doWithNumbers(
+            String path, Callback<KeyValueStorage<Integer, Double>> callback) throws Exception {
+        return storageCallback(path, callback, this::buildNumbersStorage);
+    }
+
+    private KeyValueStorage<StudentKey, Student> doWithPojo(
+            String path, Callback<KeyValueStorage<StudentKey, Student>> callback) throws Exception {
+        return storageCallback(path, callback, this::buildPojoStorage);
     }
 
     @Test
@@ -179,7 +160,7 @@ public class KeyValueStorageTests {
         doInTempDirectory(path -> doWithNumbers(path, storage -> {
             storage.write(4, 3.0);
             assertEquals((Object) storage.read(4), 3.0);
-            assertEquals(storage.read(5), null);
+            assertNull(storage.read(5));
             assertEquals(1, storage.size());
             assertFullyMatch(storage.readKeys(), 4);
         }));
@@ -267,7 +248,6 @@ public class KeyValueStorageTests {
             assertTrue(iterator.hasNext());
             assertTrue(Arrays.asList(KEY_1, KEY_2, KEY_3).contains(iterator.next()));
             storage.delete(KEY_2);
-            iterator.hasNext();
             iterator.next();
         }));
     }
@@ -311,40 +291,6 @@ public class KeyValueStorageTests {
             storage.readKeys();
             throw new AssertionError("Storage should not allow read anything in closed state");
         }));
-    }
-
-    protected KeyValueStorage<String, String> buildStringsStorage(String path) {
-        try {
-            return new MyKeyValueStorage<>(path, "String", "String");
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    protected KeyValueStorage<Integer, Double> buildNumbersStorage(String path) {
-        try {
-            return new MyKeyValueStorage<>(path, "Integer", "Double");
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    protected KeyValueStorage<StudentKey, Student> buildPojoStorage(String path) {
-        try {
-            return new MyKeyValueStorage<>(path, new MyStudentKeySerialization(),
-                    new MyStudentSerialization());
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
     }
 }
 

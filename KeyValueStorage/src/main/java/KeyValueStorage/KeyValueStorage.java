@@ -9,6 +9,7 @@ public interface KeyValueStorage<K, V> extends Closeable {
     void write(K key, V value);
     void delete(K key);
     Iterator<K> readKeys();
+    int size();
 //    default void flush() {
 //        throw new UnsupportedOperationException("Not implemented yet");
 //    }
